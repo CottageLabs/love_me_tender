@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "love_me_tender"
+version = "0.0.1"
+description = "Semantic search of tender docs using openai"
+authors = [
+    { name = "Cottage Labs", email = "us@cottagelabs.com" }
+]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.6"
+classifiers = [
+    "Development Status :: 1 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: Copyheart",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://cottagelabs.com/"
+
+[project.dependencies]
+python-dotenv = "*"
+openai = "*"
+
+[tool.flake8]
+max-line-length = 88

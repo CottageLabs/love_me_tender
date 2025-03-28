@@ -2,76 +2,95 @@
 # Semantic search of tenders using open ai vectors
 import os
 from os.path import isfile, join
-from openai import OpenAI
+from typing import Any, List
+
 from dotenv import load_dotenv
+from openai import OpenAI
+
 # loading variables from .env file
 
 
 class LoveMeTender:
-    def __init__(self, dir_path):
+    def __init__(self, dir_path: str, vector_store: str):
+        """
+        Initialize the LoveMeTender class with directory path and vector store name.
+        """
         if not os.path.exists(dir_path):
-            raise Exception("path does not exist")
+            raise FileNotFoundError(f"Path does not exist: {dir_path}")
         load_dotenv()
-        API_KEY = os.getenv("OPEN_AI_API_KEY")
-        self.dir_path = dir_path
-        self.ai_client = OpenAI(api_key=API_KEY)
-        self.vector_store = self.ai_client.vector_stores.create(
-            # Create vector store
-            name="Love me tender",
-        )
+        api_key: str = os.getenv("OPEN_AI_API_KEY")
+        if not api_key:
+            raise ValueError("OPEN_AI_API_KEY not found in environment variables")
+        self.dir_path: str = dir_path
+        self.ai_client: OpenAI = OpenAI(api_key=api_key)
 
-    def create_vector_store(self):
-        list_of_files = self._get_list_of_files()
-        for f in list_of_files:
-            self.ai_client.vector_stores.files.upload_and_poll(  # Upload file
-                vector_store_id=self.vector_store.id,
-                file=open(f, "rb")
-            )
+        # Create vector store
+        self.vector_store = self.ai_client.vector_stores.create(name=vector_store)
 
-    def get_answer(self, user_query):
+    def create_vector_store(self) -> None:
+        """
+        Create a vector store by uploading files from the directory.
+        """
+        list_of_files: List[str] = self._get_list_of_files()
+        for file_path in list_of_files:
+            with open(file_path, "rb") as file:
+                self.ai_client.vector_stores.files.upload_and_poll(
+                    vector_store_id=self.vector_store.id, file=file
+                )
+
+    def get_answer(self, user_query: str) -> None:
+        """
+        Search the vector store and synthesize the result.
+        """
         results = self._search_vector_store(user_query)
-        formatted_result = self._synthesize_result(results, user_query)
+        formatted_result: str = self._synthesize_result(results, user_query)
         print(formatted_result)
 
-    def _get_list_of_files(self):
-        list_of_files = []
-        for f in os.listdir(self.dir_path):
-            file_path = join(self.dir_path, f)
-            if isfile(file_path):
-                list_of_files.append(file_path)
-        return list_of_files
+    def _get_list_of_files(self) -> List[str]:
+        """
+        Get a list of file paths from the directory.
+        """
+        return [
+            join(self.dir_path, f)
+            for f in os.listdir(self.dir_path)
+            if isfile(join(self.dir_path, f))
+        ]
 
-    def _search_vector_store(self, user_query):
-        results = self.ai_client.vector_stores.search(
-            vector_store_id=self.vector_store.id,
-            query=user_query,
+    def _search_vector_store(self, user_query: str) -> Any:
+        """
+        Search the vector store with the user's query.
+        """
+        return self.ai_client.vector_stores.search(
+            vector_store_id=self.vector_store.id, query=user_query
         )
-        return results
 
-    def _synthesize_result(self, results, user_query):
-        formatted_results = self._format_results(results)
-
-        # '\n'.join('\n'.join(c.text) for c in result.content for result in results.data)
-
+    def _synthesize_result(self, results: Any, user_query: str) -> str:
+        """
+        Synthesize the search results into a formatted string.
+        """
+        formatted_results: str = self._format_results(results)
         completion = self.ai_client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
                     "role": "user",
-                    "content": "Produce a concise answer to the query based on the provided sources."
+                    "content": "Produce a concise answer to the "
+                    "query based on the provided sources.",
                 },
                 {
                     "role": "user",
-                    "content": f"Sources: {formatted_results}\n\nQuery: '{user_query}'"
-                }
+                    "content": f"Sources: {formatted_results}\n\nQuery: '{user_query}'",
+                },
             ],
         )
         return completion.choices[0].message.content
 
-    def _format_results(self, results):
-        formatted_results = ''
+    def _format_results(self, results: Any) -> str:
+        """
+        Format the search results into a string.
+        """
+        formatted_results: str = ""
         for result in results.data:
-            # formatted_result = f"<result file_id='{result.file_id}' file_name='{result.file_name}'>"
             formatted_result = f"<result file_id='{result.file_id}'>"
             for part in result.content:
                 formatted_result += f"<content>{part.text}</content>"
@@ -80,7 +99,6 @@ class LoveMeTender:
 
 
 if __name__ == "__main__":
-    l = LoveMeTender('data')
-    l.create_vector_store()
-    l.get_answer('What are the features of your repository')
-
+    love_me_tender = LoveMeTender("data", "tender_vector_store")
+    love_me_tender.create_vector_store()
+    love_me_tender.get_answer("What are the features of your repository")
