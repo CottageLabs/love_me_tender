@@ -7,6 +7,7 @@ from typing import Any, List
 from dotenv import load_dotenv
 from openai import OpenAI
 
+
 # loading variables from .env file
 
 
@@ -25,11 +26,23 @@ class LoveMeTender:
         self.ai_client: OpenAI = OpenAI(api_key=api_key)
 
         # Create vector store
-        self.vector_store = self.ai_client.vector_stores.create(name=vector_store)
+        self.vector_store = self._create_or_get_vector_store(vector_store)
 
-    def create_vector_store(self) -> None:
+    def _create_or_get_vector_store(self, vector_store_name: str) -> Any:
         """
-        Create a vector store by uploading files from the directory.
+        Create a new vector store or get an existing one.
+        :param vector_store_name:
+        :return:
+        """
+        for vector_store in self.ai_client.vector_stores.list():
+            if vector_store.name == vector_store_name:
+                return vector_store
+
+        return self.ai_client.vector_stores.create(name=vector_store_name)
+
+    def upload_data(self) -> None:
+        """
+        Uploads files from the directory to the vector store.
         """
         list_of_files: List[str] = self._get_list_of_files()
         for file_path in list_of_files:
@@ -48,12 +61,13 @@ class LoveMeTender:
 
     def _get_list_of_files(self) -> List[str]:
         """
-        Get a list of file paths from the directory.
+        Get a list of file paths from the directory but ignore files
+        starting with '.'.
         """
         return [
             join(self.dir_path, f)
             for f in os.listdir(self.dir_path)
-            if isfile(join(self.dir_path, f))
+            if isfile(join(self.dir_path, f)) and not f.startswith('.')
         ]
 
     def _search_vector_store(self, user_query: str) -> Any:
@@ -75,7 +89,7 @@ class LoveMeTender:
                 {
                     "role": "user",
                     "content": "Produce a concise answer to the "
-                    "query based on the provided sources.",
+                               "query based on the provided sources.",
                 },
                 {
                     "role": "user",
@@ -100,5 +114,5 @@ class LoveMeTender:
 
 if __name__ == "__main__":
     love_me_tender = LoveMeTender("data", "tender_vector_store")
-    love_me_tender.create_vector_store()
+    love_me_tender.upload_data()
     love_me_tender.get_answer("What are the features of your repository")

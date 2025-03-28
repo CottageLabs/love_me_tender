@@ -12,7 +12,7 @@ Add all your data in the `data` folder.
 # initialise
 love_me_tender = LoveMeTender('data', 'tender_vector_store')
 # Create a vector store with your data
-love_me_tender.create_vector_store()
+love_me_tender.upload_data()
 # Get answers to your question
 love_me_tender.get_answer('What are the features of your repository')
 ```
